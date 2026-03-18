@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Canvass Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --green: #00a651;
+    --green-dark: #007a3d;
+    --green-light: #e6f7ee;
+    --bg: #f5f5f0;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #e0e0d8;
+    --danger: #d32f2f;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding-bottom: 110px;
+  }
+
+  header {
+    background: var(--green);
+    color: white;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  #counter { font-size: 14px; opacity: 0.9; }
+  .export-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .export-btn:active { background: rgba(255,255,255,0.35); }
+
+  .section { padding: 12px 16px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+
+  #address {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    outline: none;
+  }
+  #address::placeholder { color: #bbb; }
+
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .btn-choice {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 4px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .btn-choice.active {
+    border-color: var(--green);
+    background: var(--green-light);
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+  .btn-choice:active { transform: scale(0.96); }
+
+  .vote-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .vote-grid .btn-choice { min-width: unset; flex: unset; }
+
+  .likelihood-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .likelihood-row .btn-choice.l1.active { background: #c8f7d5; border-color: #2e7d32; color: #2e7d32; }
+  .likelihood-row .btn-choice.l2.active { background: #dcedc8; border-color: #558b2f; color: #558b2f; }
+  .likelihood-row .btn-choice.l3.active { background: #fff9c4; border-color: #f9a825; color: #f9a825; }
+  .likelihood-row .btn-choice.l4.active { background: #ffe0b2; border-color: #ef6c00; color: #ef6c00; }
+  .likelihood-row .btn-choice.l5.active { background: #ffcdd2; border-color: #c62828; color: #c62828; }
+
+  .no-answer-btn {
+    width: 100%;
+    padding: 14px;
+    background: #f0f0ea;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+
+  #notes {
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    resize: none;
+    height: 60px;
+    outline: none;
+    color: var(--text);
+  }
+  #notes:focus { border-color: var(--green); }
+
+  .submit-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: white;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+  }
+
+  .btn-submit {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-submit:active { transform: scale(0.97); }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:disabled { background: #ccc; color: #999; }
+  .btn-clear { background: #f5f5f0; color: var(--muted); flex: 0 0 auto; padding: 14px 20px; }
+
+  .toast {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--green-dark);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--danger); }
+
+  label.field-label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+
+  /* Recent entries strip */
+  .recent-bar {
+    padding: 8px 16px;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .recent-bar:empty { display: none; }
+  .recent-chip {
+    flex-shrink: 0;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .recent-chip .addr { color: var(--text); font-weight: 500; }
+  .recent-chip .code { margin-left: 4px; }
+
+  /* Undo bar */
+  .undo-bar {
+    position: fixed;
+    bottom: 76px;
+    left: 16px;
+    right: 16px;
+    background: #333;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 10px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    z-index: 150;
+  }
+  .undo-bar.show { display: flex; }
+  .undo-link { color: #8f8; font-weight: 600; cursor: pointer; border: none; background: none; font-family: inherit; font-size: 14px; padding: 4px 8px; }
+
+  /* Export overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 500;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .overlay-sheet {
+    background: white;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 400px;
+  }
+  .overlay-sheet h3 { font-size: 16px; margin-bottom: 4px; }
+  .overlay-sheet p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .overlay-sheet .action-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .overlay-sheet .action-btn.primary { background: var(--green); color: white; }
+  .overlay-sheet .action-btn.danger { background: #fff0f0; color: var(--danger); }
+  .overlay-sheet .action-btn.cancel { background: #f5f5f0; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌿 Canvass</h1>
+  <div class="header-right">
+    <span id="counter">0</span>
+    <button class="export-btn" onclick="showExport()">Export</button>
+  </div>
+</header>
+
+<!-- Recent entries -->
+<div class="recent-bar" id="recentBar"></div>
+
+<div class="section">
+  <div class="card">
+    <input type="text" id="address" placeholder="Address / door number" autocomplete="off">
+  </div>
+
+  <button class="no-answer-btn" onclick="submitNoAnswer()">No Answer (O)</button>
+
+  <div class="card">
+    <label class="field-label">Who answered</label>
+    <div class="btn-row" data-field="whoAnswered">
+      <button class="btn-choice" data-val="M">M</button>
+      <button class="btn-choice" data-val="F">F</button>
+      <button class="btn-choice" data-val="U">U</button>
+      <button class="btn-choice" data-val="MF">MF</button>
+      <button class="btn-choice" data-val="MM">MM</button>
+      <button class="btn-choice" data-val="FF">FF</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">Normal vote (LOCAL)</label>
+    <div class="vote-grid" data-field="normalVote">
+      <button class="btn-choice" data-val="CON">CON</button>
+      <button class="btn-choice" data-val="G">G</button>
+      <button class="btn-choice" data-val="LAB">LAB</button>
+      <button class="btn-choice" data-val="LD">LD</button>
+      <button class="btn-choice" data-val="REF">REF</button>
+      <button class="btn-choice" data-val="IND">IND</button>
+      <button class="btn-choice" data-val="NV">NV</button>
+      <button class="btn-choice" data-val="DNK">DNK</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">Intended vote (this time)</label>
+    <div class="vote-grid" data-field="intendedVote">
+      <button class="btn-choice" data-val="CON">CON</button>
+      <button class="btn-choice" data-val="G">G</button>
+      <button class="btn-choice" data-val="LAB">LAB</button>
+      <button class="btn-choice" data-val="LD">LD</button>
+      <button class="btn-choice" data-val="REF">REF</button>
+      <button class="btn-choice" data-val="IND">IND</button>
+      <button class="btn-choice" data-val="NV">NV</button>
+      <button class="btn-choice" data-val="DK">DK</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">Green likelihood</label>
+    <div class="likelihood-row" data-field="greenLikelihood">
+      <button class="btn-choice l1" data-val="1">1<br><small>Def</small></button>
+      <button class="btn-choice l2" data-val="2">2<br><small>Prob</small></button>
+      <button class="btn-choice l3" data-val="3">3<br><small>50:50</small></button>
+      <button class="btn-choice l4" data-val="4">4<br><small>Not</small></button>
+      <button class="btn-choice l5" data-val="5">5<br><small>No way</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">Poster request</label>
+    <div class="btn-row" data-field="poster">
+      <button class="btn-choice" data-val="">None</button>
+      <button class="btn-choice" data-val="P">Poster</button>
+      <button class="btn-choice" data-val="PB">Poster Board</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">Notes</label>
+    <textarea id="notes" placeholder="Optional notes..."></textarea>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Undo bar -->
+<div class="undo-bar" id="undoBar">
+  <span id="undoText">Recorded</span>
+  <button class="undo-link" onclick="undoLast()">Undo</button>
+</div>
+
+<div class="submit-bar">
+  <button class="btn-submit btn-clear" onclick="clearForm()">Clear</button>
+  <button class="btn-submit btn-primary" id="submitBtn" onclick="submitDoor()">Submit</button>
+</div>
+
+<!-- Export overlay -->
+<div class="overlay" id="exportOverlay" onclick="hideExport(event)">
+  <div class="overlay-sheet">
+    <h3>Export data</h3>
+    <p id="exportInfo">0 records ready to export</p>
+    <button class="action-btn primary" onclick="downloadCSV()">Download CSV</button>
+    <button class="action-btn danger" onclick="clearAllData()">Clear all data</button>
+    <button class="action-btn cancel" onclick="hideExport()">Cancel</button>
+  </div>
+</div>
+
+<script>
+  // All data stored in memory, backed by localStorage
+  let records = JSON.parse(localStorage.getItem('canvassRecords') || '[]');
+  let undoTimer = null;
+
+  const state = { whoAnswered: '', normalVote: '', intendedVote: '', greenLikelihood: '', poster: '' };
+
+  updateCounter();
+  renderRecent();
+
+  // Button group logic
+  document.querySelectorAll('[data-field]').forEach(group => {
+    const field = group.dataset.field;
+    group.querySelectorAll('.btn-choice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state[field] = btn.dataset.val;
+      });
+    });
+  });
+
+  function save() {
+    localStorage.setItem('canvassRecords', JSON.stringify(records));
+    updateCounter();
+    renderRecent();
+  }
+
+  function updateCounter() {
+    document.getElementById('counter').textContent = records.length + (records.length === 1 ? ' door' : ' doors');
+  }
+
+  function renderRecent() {
+    const bar = document.getElementById('recentBar');
+    const last5 = records.slice(-5).reverse();
+    bar.innerHTML = last5.map(r =>
+      '<div class="recent-chip"><span class="addr">' + esc(r.address) + '</span>' +
+      (r.whoAnswered === 'O' ? '<span class="code"> O</span>' : '<span class="code"> ' + esc(r.intendedVote) + '</span>') +
+      '</div>'
+    ).join('');
+  }
+
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function toast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => t.className = 'toast', 2000);
+  }
+
+  function clearForm() {
+    document.getElementById('address').value = '';
+    document.getElementById('notes').value = '';
+    document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('active'));
+    Object.keys(state).forEach(k => state[k] = '');
+    document.getElementById('address').focus();
+  }
+
+  function addRecord(rec) {
+    records.push(rec);
+    save();
+    showUndo(rec.address);
+    clearForm();
+  }
+
+  function showUndo(addr) {
+    clearTimeout(undoTimer);
+    const bar = document.getElementById('undoBar');
+    document.getElementById('undoText').textContent = addr + ' recorded';
+    bar.classList.add('show');
+    undoTimer = setTimeout(() => bar.classList.remove('show'), 4000);
+  }
+
+  function undoLast() {
+    if (records.length === 0) return;
+    records.pop();
+    save();
+    document.getElementById('undoBar').classList.remove('show');
+    toast('Undone');
+  }
+
+  function submitDoor() {
+    const address = document.getElementById('address').value.trim();
+    if (!address) { toast('Enter an address', true); return; }
+
+    addRecord({
+      timestamp: new Date().toLocaleString('en-GB'),
+      address,
+      whoAnswered: state.whoAnswered || '-',
+      normalVote: state.normalVote || '-',
+      intendedVote: state.intendedVote || '-',
+      greenLikelihood: state.greenLikelihood || '-',
+      poster: state.poster || '-',
+      notes: document.getElementById('notes').value.trim() || '-'
+    });
+  }
+
+  function submitNoAnswer() {
+    const address = document.getElementById('address').value.trim();
+    if (!address) { toast('Enter an address first', true); return; }
+
+    addRecord({
+      timestamp: new Date().toLocaleString('en-GB'),
+      address,
+      whoAnswered: 'O',
+      normalVote: '-',
+      intendedVote: '-',
+      greenLikelihood: '-',
+      poster: '-',
+      notes: '-'
+    });
+  }
+
+  // Export
+  function showExport() {
+    document.getElementById('exportInfo').textContent = records.length + ' records ready to export';
+    document.getElementById('exportOverlay').classList.add('show');
+  }
+
+  function hideExport(e) {
+    if (!e || e.target === document.getElementById('exportOverlay'))
+      document.getElementById('exportOverlay').classList.remove('show');
+  }
+
+  function downloadCSV() {
+    if (records.length === 0) { toast('No data to export', true); return; }
+
+    const headers = ['Timestamp','Address','Who_Answered','Normal_Vote','Intended_Vote','Green_Likelihood','Poster','Notes'];
+    const rows = records.map(r => [
+      r.timestamp, r.address, r.whoAnswered, r.normalVote,
+      r.intendedVote, r.greenLikelihood, r.poster, r.notes
+    ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'canvass_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    hideExport();
+    toast('CSV downloaded');
+  }
+
+  function clearAllData() {
+    if (!confirm('Delete all ' + records.length + ' records? This cannot be undone.')) return;
+    records = [];
+    save();
+    hideExport();
+    toast('All data cleared');
+  }
+</script>
+</body>
+</html>
