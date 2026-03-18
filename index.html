@@ -44,6 +44,7 @@
     justify-content: space-between;
   }
   header h1 { font-size: 18px; font-weight: 700; }
+  .canvasser-name { font-size: 12px; opacity: 0.85; font-weight: 400; cursor: pointer; }
   .header-right { display: flex; align-items: center; gap: 12px; }
   #counter { font-size: 14px; opacity: 0.9; }
   .export-btn {
@@ -278,12 +279,25 @@
 <body>
 
 <header>
-  <h1>🌿 Canvass</h1>
+  <div>
+    <h1>🌿 Canvass</h1>
+    <div class="canvasser-name" id="canvasserDisplay" onclick="changeName()"></div>
+  </div>
   <div class="header-right">
     <span id="counter">0</span>
     <button class="export-btn" onclick="showExport()">Export</button>
   </div>
 </header>
+
+<!-- Name prompt -->
+<div class="overlay" id="nameOverlay">
+  <div class="overlay-sheet">
+    <h3>Your name</h3>
+    <p>This will be saved with each record so we know who canvassed where.</p>
+    <input type="text" id="nameInput" placeholder="e.g. Matt" style="width:100%;font-family:inherit;font-size:16px;padding:12px;border:2px solid var(--border);border-radius:8px;margin-bottom:12px;outline:none;">
+    <button class="action-btn primary" onclick="saveName()">Save</button>
+  </div>
+</div>
 
 <!-- Recent entries -->
 <div class="recent-bar" id="recentBar"></div>
@@ -389,6 +403,28 @@
   // All data stored in memory, backed by localStorage
   let records = JSON.parse(localStorage.getItem('canvassRecords') || '[]');
   let undoTimer = null;
+  let canvasserName = localStorage.getItem('canvasserName') || '';
+
+  // Prompt for name if not set
+  if (!canvasserName) {
+    document.getElementById('nameOverlay').classList.add('show');
+  } else {
+    document.getElementById('canvasserDisplay').textContent = canvasserName + ' ✎';
+  }
+
+  function saveName() {
+    const name = document.getElementById('nameInput').value.trim();
+    if (!name) return;
+    canvasserName = name;
+    localStorage.setItem('canvasserName', name);
+    document.getElementById('canvasserDisplay').textContent = name + ' ✎';
+    document.getElementById('nameOverlay').classList.remove('show');
+  }
+
+  function changeName() {
+    document.getElementById('nameInput').value = canvasserName;
+    document.getElementById('nameOverlay').classList.add('show');
+  }
 
   const state = { whoAnswered: '', normalVote: '', intendedVote: '', greenLikelihood: '', poster: '' };
 
@@ -473,8 +509,8 @@
 
     addRecord({
       timestamp: new Date().toLocaleString('en-GB'),
+      canvasser: canvasserName,
       address,
-      whoAnswered: state.whoAnswered || '-',
       normalVote: state.normalVote || '-',
       intendedVote: state.intendedVote || '-',
       greenLikelihood: state.greenLikelihood || '-',
@@ -489,6 +525,7 @@
 
     addRecord({
       timestamp: new Date().toLocaleString('en-GB'),
+      canvasser: canvasserName,
       address,
       whoAnswered: 'O',
       normalVote: '-',
@@ -510,26 +547,38 @@
       document.getElementById('exportOverlay').classList.remove('show');
   }
 
-  function downloadCSV() {
+  async function downloadCSV() {
     if (records.length === 0) { toast('No data to export', true); return; }
 
-    const headers = ['Timestamp','Address','Who_Answered','Normal_Vote','Intended_Vote','Green_Likelihood','Poster','Notes'];
+    const headers = ['Timestamp','Canvasser','Address','Who_Answered','Normal_Vote','Intended_Vote','Green_Likelihood','Poster','Notes'];
     const rows = records.map(r => [
-      r.timestamp, r.address, r.whoAnswered, r.normalVote,
+      r.timestamp, r.canvasser || '-', r.address, r.whoAnswered, r.normalVote,
       r.intendedVote, r.greenLikelihood, r.poster, r.notes
     ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
 
     const csv = [headers.join(','), ...rows].join('\n');
+    const filename = 'canvass_' + new Date().toISOString().slice(0,10) + '.csv';
     const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'canvass_' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const file = new File([blob], filename, { type: 'text/csv' });
+
+    // Use share sheet on mobile (iOS/Android), fall back to download on desktop
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+      } catch (err) {
+        if (err.name !== 'AbortError') toast('Share failed', true);
+      }
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
 
     hideExport();
-    toast('CSV downloaded');
+    toast('CSV exported');
   }
 
   function clearAllData() {
