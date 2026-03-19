@@ -507,6 +507,7 @@
   }
 
   function submitDoor() {
+    if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); return; }
     const address = document.getElementById('address').value.trim();
     if (!address) { toast('Enter an address', true); return; }
 
@@ -524,6 +525,7 @@
   }
 
   function submitNoAnswer() {
+    if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); return; }
     const address = document.getElementById('address').value.trim();
     if (!address) { toast('Enter an address first', true); return; }
 
@@ -561,7 +563,8 @@
     ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
 
     const csv = [headers.join(','), ...rows].join('\n');
-    const filename = 'canvass_' + new Date().toISOString().slice(0,10) + '.csv';
+    const safeName = canvasserName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const filename = 'grassroots_' + safeName + '_' + new Date().toISOString().slice(0,10) + '.csv';
     const blob = new Blob([csv], { type: 'text/csv' });
     const file = new File([blob], filename, { type: 'text/csv' });
 
