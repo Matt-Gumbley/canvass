@@ -307,7 +307,13 @@
 
 <div class="section">
   <div class="card">
-    <input type="text" id="address" placeholder="Address / door number" autocomplete="off">
+    <label class="field-label">Street</label>
+    <input type="text" id="street" placeholder="e.g. Hulme Road" autocomplete="off" style="width:100%;font-size:16px;font-weight:700;font-family:inherit;border:none;background:transparent;color:var(--text);outline:none;">
+  </div>
+
+  <div class="card">
+    <label class="field-label">Number / name</label>
+    <input type="text" id="doorNum" placeholder="e.g. 14 or Flat 2B" autocomplete="off" style="width:100%;font-size:18px;font-weight:700;font-family:inherit;border:none;background:transparent;color:var(--text);outline:none;">
   </div>
 
   <button class="no-answer-btn" onclick="submitNoAnswer()">No Answer (O)</button>
@@ -460,7 +466,7 @@
     const bar = document.getElementById('recentBar');
     const last5 = records.slice(-5).reverse();
     bar.innerHTML = last5.map(r =>
-      '<div class="recent-chip"><span class="addr">' + esc(r.address) + '</span>' +
+      '<div class="recent-chip"><span class="addr">' + esc(r.door || r.address || '') + '</span>' +
       (r.whoAnswered === 'O' ? '<span class="code"> O</span>' : '<span class="code"> ' + esc(r.intendedVote) + '</span>') +
       '</div>'
     ).join('');
@@ -476,11 +482,11 @@
   }
 
   function clearForm() {
-    document.getElementById('address').value = '';
+    document.getElementById('doorNum').value = '';
     document.getElementById('notes').value = '';
     document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('active'));
     Object.keys(state).forEach(k => state[k] = '');
-    document.getElementById('address').focus();
+    document.getElementById('doorNum').focus();
   }
 
   function addRecord(rec) {
@@ -508,13 +514,14 @@
 
   function submitDoor() {
     if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); return; }
-    const address = document.getElementById('address').value.trim();
-    if (!address) { toast('Enter an address', true); return; }
-
+    const street = document.getElementById('street').value.trim();
+    const doorNum = document.getElementById('doorNum').value.trim();
+    if (!doorNum) { toast('Enter a door number', true); return; }
     addRecord({
       timestamp: new Date().toLocaleString('en-GB'),
       canvasser: canvasserName,
-      address,
+      street: street || '-',
+      door: doorNum,
       whoAnswered: state.whoAnswered || '-',
       normalVote: state.normalVote || '-',
       intendedVote: state.intendedVote || '-',
@@ -526,13 +533,14 @@
 
   function submitNoAnswer() {
     if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); return; }
-    const address = document.getElementById('address').value.trim();
-    if (!address) { toast('Enter an address first', true); return; }
-
+    const street = document.getElementById('street').value.trim();
+    const doorNum = document.getElementById('doorNum').value.trim();
+    if (!doorNum) { toast('Enter a door number first', true); return; }
     addRecord({
       timestamp: new Date().toLocaleString('en-GB'),
       canvasser: canvasserName,
-      address,
+      street: street || '-',
+      door: doorNum,
       whoAnswered: 'O',
       normalVote: '-',
       intendedVote: '-',
@@ -556,9 +564,9 @@
   async function downloadCSV() {
     if (records.length === 0) { toast('No data to export', true); return; }
 
-    const headers = ['Timestamp','Canvasser','Address','Who_Answered','Normal_Vote','Intended_Vote','Green_Likelihood','Poster','Notes'];
+    const headers = ['Timestamp','Canvasser','Street','Door','Who_Answered','Normal_Vote','Intended_Vote','Green_Likelihood','Poster','Notes'];
     const rows = records.map(r => [
-      r.timestamp, r.canvasser || '-', r.address, r.whoAnswered, r.normalVote,
+      r.timestamp, r.canvasser || '-', r.street || '-', r.door || r.address || '-', r.whoAnswered, r.normalVote,
       r.intendedVote, r.greenLikelihood, r.poster, r.notes
     ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
 
