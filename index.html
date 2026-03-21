@@ -5,12 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Grassroots">
+<meta name="apple-mobile-web-app-title" content="Freestyle">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2300a651'/><text y='72' x='50' text-anchor='middle' font-size='60'>🌱</text></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2300a651'/><text y='72' x='50' text-anchor='middle' font-size='60'>🌱</text></svg>">
-<title>Grassroots</title>
+<title>Grassroots Freestyle</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -28,11 +27,11 @@
   }
 
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100dvh;
-    padding-bottom: 110px;
+    padding-bottom: 20px;
   }
 
   header {
@@ -151,17 +150,10 @@
   #notes:focus { border-color: var(--green); }
 
   .submit-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
     padding: 12px 16px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    background: white;
-    border-top: 1px solid var(--border);
+    padding-bottom: 200px;
     display: flex;
     gap: 10px;
-    z-index: 100;
   }
 
   .btn-submit {
@@ -198,6 +190,9 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { background: var(--danger); }
+
+  @keyframes flashGreen { 0% { background: var(--green-light); } 100% { background: var(--bg); } }
+  .flash { animation: flashGreen 0.6s ease-out; }
 
   label.field-label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
 
@@ -283,7 +278,7 @@
 
 <header>
   <div>
-    <h1>🌱 Grassroots</h1>
+    <h1>🌱 Freestyle</h1>
     <div class="canvasser-name" id="canvasserDisplay" onclick="changeName()"></div>
   </div>
   <div class="header-right">
@@ -295,7 +290,7 @@
 <!-- Name prompt -->
 <div class="overlay" id="nameOverlay">
   <div class="overlay-sheet">
-    <h3>Welcome to Grassroots</h3>
+    <h3>Welcome to Grassroots Freestyle</h3>
     <p>This will be saved with each record so we know who canvassed where.</p>
     <input type="text" id="nameInput" placeholder="e.g. Matt" style="width:100%;font-family:inherit;font-size:16px;padding:12px;border:2px solid var(--border);border-radius:8px;margin-bottom:12px;outline:none;">
     <button class="action-btn primary" onclick="saveName()">Save</button>
@@ -489,11 +484,21 @@
     document.getElementById('doorNum').focus();
   }
 
+  let submitting = false;
+
+  function flashSuccess() {
+    document.body.classList.remove('flash');
+    void document.body.offsetWidth;
+    document.body.classList.add('flash');
+  }
+
   function addRecord(rec) {
     records.push(rec);
     save();
-    showUndo(rec.address);
+    showUndo(rec.door || rec.address);
     clearForm();
+    flashSuccess();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showUndo(addr) {
@@ -513,10 +518,12 @@
   }
 
   function submitDoor() {
-    if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); return; }
+    if (submitting) return;
+    submitting = true;
+    if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); submitting = false; return; }
     const street = document.getElementById('street').value.trim();
     const doorNum = document.getElementById('doorNum').value.trim();
-    if (!doorNum) { toast('Enter a door number', true); return; }
+    if (!doorNum) { toast('Enter a door number', true); submitting = false; return; }
     addRecord({
       timestamp: new Date().toLocaleString('en-GB'),
       canvasser: canvasserName,
@@ -529,13 +536,16 @@
       poster: state.poster || '-',
       notes: document.getElementById('notes').value.trim() || '-'
     });
+    setTimeout(() => { submitting = false; }, 500);
   }
 
   function submitNoAnswer() {
-    if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); return; }
+    if (submitting) return;
+    submitting = true;
+    if (!canvasserName) { document.getElementById('nameOverlay').classList.add('show'); submitting = false; return; }
     const street = document.getElementById('street').value.trim();
     const doorNum = document.getElementById('doorNum').value.trim();
-    if (!doorNum) { toast('Enter a door number first', true); return; }
+    if (!doorNum) { toast('Enter a door number first', true); submitting = false; return; }
     addRecord({
       timestamp: new Date().toLocaleString('en-GB'),
       canvasser: canvasserName,
@@ -548,6 +558,7 @@
       poster: '-',
       notes: '-'
     });
+    setTimeout(() => { submitting = false; }, 500);
   }
 
   // Export
@@ -597,7 +608,8 @@
   }
 
   function clearAllData() {
-    if (!confirm('Delete all ' + records.length + ' records? This cannot be undone.')) return;
+    if (!confirm('Delete all ' + records.length + ' records?')) return;
+    if (!confirm('Are you sure? This cannot be undone. Have you exported first?')) return;
     records = [];
     save();
     hideExport();
